@@ -6,14 +6,14 @@
 (def window-width  window/innerWidth)
 (def window-height window/innerHeight)
 
-(def camera (THREE.PerspectiveCamera. 75 
+(def scene    (THREE.Scene.))
+(def camera (THREE.PerspectiveCamera. 75
                                       (/ window-width
                                          window-height)
                                       0.1
                                       1000))
 
-(def renderer (THREE.WebGLRenderer. #js {:antialias true}))
-(def scene    (THREE.Scene.))
+(def renderer (THREE.WebGLRenderer.))
 
 (defn init-three! [renderer camera]
   (do
