@@ -28,24 +28,46 @@
       (.set (.-position directional-light) 1 1 1)
       (.add scene directional-light))))
 
+(def vertex-shader
+  "void main ()  {
+     gl_Position = projectionMatrix *
+                   modelViewMatrix *
+                   vec4 ( position, 1.0 );
+  }")
+
+(def fragment-shader
+ "void main ()  {
+   gl_FragColor = vec4 (1.0, 0.0, 1.0, 1.0);
+ }")
+
+(defn create-material []
+  (THREE.ShaderMaterial. #js
+                        {:vertexShader vertex-shader
+                         :fragmentShader fragment-shader}))
+
 (defn create-box []
   (let [geo       (THREE.BoxGeometry. 1 1 1)
-        material  (THREE.MeshBasicMaterial. #js {:color 0x00ff00})]
+        material  (create-material)]
     (THREE.Mesh. geo material)))
 
-(init-three! renderer camera)
-(init-lights! scene)
+(defn add-box-to-scene! [scene]
+  (let [box (create-box)]
+    (.add scene box)
+    box))
 
-(def box (create-box))
-(.add scene box)
+(defn init! [scene renderer camera]
+  (init-three! renderer camera)
+  (init-lights! scene))
 
-(defn draw [{:keys [x y] :as world-state}]
+(defn draw [{:keys [x y box] :as world-state}]
   (aset box "rotation" "x" x)
   (aset box "rotation" "y" y)
   (.render renderer scene camera))
 
+(init! scene renderer camera)
+
 (big-bang!
-  :initial-state {:x 0 :y 0}
+  :initial-state {:x 0 :y 0 :box (add-box-to-scene! scene)}
   :on-tick
   (fn [event world-state]
     (-> world-state
