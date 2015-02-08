@@ -30,6 +30,7 @@
 
 (def vertex-shader
   "
+  uniform float amplitude;
   attribute float displacement;
   varying vec3 vNormal;
 
@@ -37,8 +38,8 @@
     vNormal = normal;
 
     vec3 newPosition = position +
-                       normal +
-                       vec3(displacement);
+                       normal *
+                       vec3(displacement * amplitude);
 
     gl_Position = projectionMatrix *
                   modelViewMatrix *
@@ -63,9 +64,13 @@
     {:displacement {:type "f"
                     :value values}}))
 
+(def uniforms {:amplitude {:type "f"
+                           :value 0}})
+
 (defn create-material [geo]
   (THREE.ShaderMaterial. (clj->js
-                           {:attributes     (attributes geo)
+                           {:uniforms       uniforms
+                            :attributes     (attributes geo)
                             :vertexShader   vertex-shader
                             :fragmentShader fragment-shader})))
 
@@ -90,11 +95,29 @@
 
 (init! scene renderer camera)
 
+(defn lerp-to-target [current target rate]
+  (+ (* current (- 1 rate)) (* target rate)))
+
+(defn update-amplitude! [sphere current target]
+  (let [current (lerp-to-target current target 0.2)]
+    (aset sphere "material" "uniforms" "amplitude" "value" current)
+    current))
+
+(defn calculate-new-target [current target]
+  (let [distance (- target current)]
+   (if (<= distance 0.1)
+     (+ 0.2 target)
+     target)))
+
 (big-bang!
-  :initial-state {:x 0 :y 0 :sphere (add-sphere-to-scene! scene)}
+  :initial-state {:x 0 :y 0
+                  :sphere (add-sphere-to-scene! scene)
+                  :target 0 :current 0}
   :on-tick
-  (fn [event world-state]
+  (fn [event {:keys [sphere target current] :as world-state}]
     (-> world-state
-        (update-in [:x] #(+ 0.07 %))
-        (update-in [:y] #(+ 0.05 %))))
+        (update-in [:target] #(calculate-new-target current %))
+        (update-in [:current] #(update-amplitude! sphere % target))
+        (update-in [:x] #(+ 0.001 %))
+        (update-in [:y] #(+ 0.001 %))))
   :to-draw draw)
