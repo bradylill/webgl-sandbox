@@ -1,21 +1,19 @@
 (ns webgl.core
-  (:require [big-bang.core :refer [big-bang!]]))
+  (:require [big-bang.core :refer [big-bang!]]
+            [webgl.sample-material :as mat]))
 
 (enable-console-print!)
 
-(def window-width  window/innerWidth)
-(def window-height window/innerHeight)
+(def app-state {})
 
-(def scene    (THREE.Scene.))
-(def camera (THREE.PerspectiveCamera. 75
-                                      (/ window-width
-                                         window-height)
-                                      0.1
-                                      1000))
+(defn create-camera [[window-width window-height]]
+  (let [aspect (/ window-width window-height)
+        fov 75
+        near-clip 0.1
+        far-clip 1000]
+    (THREE.PerspectiveCamera. fov aspect near-clip far-clip)))
 
-(def renderer (THREE.WebGLRenderer.))
-
-(defn init-three! [renderer camera]
+(defn init-three! [renderer camera [window-width window-height]]
   (do
     (.setSize renderer window-width window-height)
     (.appendChild (.-body js/document) (.-domElement renderer))
@@ -28,96 +26,69 @@
       (.set (.-position directional-light) 1 1 1)
       (.add scene directional-light))))
 
-(def vertex-shader
-  "
-  uniform float amplitude;
-  attribute float displacement;
-  varying vec3 vNormal;
+(defn add-entities-to-scene! [scene entities]
+  (doseq [entity entities]
+    (.add scene (:mesh entity))))
 
-  void main ()  {
-    vNormal = normal;
+(defn create-sphere [size]
+  (let [geo       (THREE.SphereGeometry. size size size)
+        material  (mat/create-material geo)]
+    {:mesh (THREE.Mesh. geo material)
+     :rx 0 :ry 0 :rz 0}))
 
-    vec3 newPosition = position +
-                       normal *
-                       vec3(displacement * amplitude);
+(defn create-entities []
+  (vector (create-sphere 30)))
 
-    gl_Position = projectionMatrix *
-                  modelViewMatrix *
-                  vec4(newPosition, 1.0);
-  }")
+(defn init! [{:keys [scene renderer camera window-size entities] :as app-state}]
+  (do
+    (init-three! renderer camera window-size)
+    (init-lights! scene)
+    (add-entities-to-scene! scene entities)
+    app-state))
 
-(def fragment-shader
-  "
-  varying vec3 vNormal;
-
-  void main ()  {
-    vec3 light = vec3(0.5, 0.2, 1.0);
-    light = normalize(light);
-
-    float dProd = max(0.0, dot(vNormal, light));
-
-    gl_FragColor = vec4(dProd, dProd, dProd, 1.0);
-  }")
-
-(defn attributes [geo]
-  (let [values (for [v (.-vertices geo)] (* (rand) 5))]
-    {:displacement {:type "f"
-                    :value values}}))
-
-(def uniforms {:amplitude {:type "f"
-                           :value 0}})
-
-(defn create-material [geo]
-  (THREE.ShaderMaterial. (clj->js
-                           {:uniforms       uniforms
-                            :attributes     (attributes geo)
-                            :vertexShader   vertex-shader
-                            :fragmentShader fragment-shader})))
-
-(defn create-sphere []
-  (let [geo       (THREE.SphereGeometry. 30 30 30)
-        material  (create-material geo)]
-    (THREE.Mesh. geo material)))
-
-(defn add-sphere-to-scene! [scene]
-  (let [sphere (create-sphere)]
-    (.add scene sphere)
-    sphere))
-
-(defn init! [scene renderer camera]
-  (init-three! renderer camera)
-  (init-lights! scene))
-
-(defn draw [{:keys [x y sphere] :as world-state}]
-  (aset sphere "rotation" "x" x)
-  (aset sphere "rotation" "y" y)
-  (.render renderer scene camera))
-
-(init! scene renderer camera)
+(defn start []
+  (-> app-state
+      (assoc :window-size [window/innerWidth window/innerHeight])
+      (assoc :scene (THREE.Scene.))
+      (assoc :camera (create-camera [window/innerWidth window/innerHeight]))
+      (assoc :renderer (THREE.WebGLRenderer.))
+      (assoc :entities (create-entities))
+      (init!)))
 
 (defn lerp-to-target [current target rate]
   (+ (* current (- 1 rate)) (* target rate)))
 
-(defn update-amplitude! [sphere current target]
+(defn update-amplitude! [mesh current target]
   (let [current (lerp-to-target current target 0.2)]
-    (aset sphere "material" "uniforms" "amplitude" "value" current)
+    (aset mesh "material" "uniforms" "amplitude" "value" current)
     current))
 
 (defn calculate-new-target [current target]
-  (let [distance (- target current)]
+  (let [current (if (nil? current) 0 current)
+        target  (if (nil? target) 0 target)
+        distance (- target current)]
    (if (<= distance 0.1)
      (+ 0.2 target)
      target)))
 
+(defn update-entity [{:keys [mesh current-scale target-scale] :as entity}]
+  (-> entity
+      #_(update-in [:rx]  #(do (aset mesh "rotation" "x" %)
+                             (+ 0.001 %)))
+      #_(update-in [:ry]  #(do (aset mesh "rotation" "y" %)
+                             (+ 0.001 %)))
+      #_(update-in [:target-scale] #(calculate-new-target current-scale %))
+      (update-in [:current-scale] #(update-amplitude! mesh % 4))
+      entity))
+
+(defn tick [event app-state]
+  (-> app-state
+      (update-in [:entities] #(map update-entity %))))
+
+(defn draw [{:keys [scene camera renderer]}]
+  (.render renderer scene camera))
+
 (big-bang!
-  :initial-state {:x 0 :y 0
-                  :sphere (add-sphere-to-scene! scene)
-                  :target 0 :current 0}
-  :on-tick
-  (fn [event {:keys [sphere target current] :as world-state}]
-    (-> world-state
-        (update-in [:target] #(calculate-new-target current %))
-        (update-in [:current] #(update-amplitude! sphere % target))
-        (update-in [:x] #(+ 0.001 %))
-        (update-in [:y] #(+ 0.001 %))))
+  :initial-state (start)
+  :on-tick tick
   :to-draw draw)
