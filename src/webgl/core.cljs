@@ -16,6 +16,7 @@
 (defn init-three! [renderer camera [window-width window-height]]
   (do
     (.setSize renderer window-width window-height)
+    (.setClearColor renderer 0xffffff)
     (.appendChild (.-body js/document) (.-domElement renderer))
     (.set (.-position camera) 0 0 100)))
 
