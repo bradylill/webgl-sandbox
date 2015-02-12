@@ -10,8 +10,7 @@
     vNormal = normal;
 
     vec3 newPosition = position +
-                       normal *
-                       vec3(displacement * amplitude);
+                       vec3(amplitude / displacement);
 
     gl_Position = projectionMatrix *
                   modelViewMatrix *
@@ -28,7 +27,7 @@
 
     float dProd = max(0.3, dot(vNormal, light));
 
-    gl_FragColor = vec4(dProd, dProd, dProd * 0.7, 1.0);
+    gl_FragColor = vec4(1.0, dProd, dProd * 0.5, 1.0);
   }")
 
 (defn attributes [geo]

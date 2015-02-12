@@ -38,7 +38,7 @@
 
 (defn update-entity [{:keys [mesh scale target-scale direction] :as entity}]
   (let [spin-rate 0.0005
-        expand-rate 0.005
+        expand-rate 0.05
         max-amplitude 2]
   (-> entity
       (scale-entity max-amplitude expand-rate)
