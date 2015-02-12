@@ -30,10 +30,15 @@
         amplitude (lerp-to-target amplitude max-amplitude expand-rate)]
     (update-in entity [:amplitude] #(apply-amplitude! mesh amplitude))))
 
-(defn update-entity [{:keys [mesh scale target-scale direction] :as entity}]
-  (scale-entity entity)
-  #_(-> entity
+(defn spin-entity [{:keys [mesh] :as entity} spin-rate]
+  (-> entity
         (update-in [:rx]            #(do (aset mesh "rotation" "x" %)
-                                         (+ 0.001 %)))
+                                         (+ spin-rate %)))
         (update-in [:ry]            #(do (aset mesh "rotation" "y" %)
-                                         (+ 0.001 %)))))
+                                         (+ spin-rate %)))))
+
+(defn update-entity [{:keys [mesh scale target-scale direction] :as entity}]
+  (let [spin-rate 0.001]
+  (-> entity
+      (scale-entity)
+      (spin-entity spin-rate))))
