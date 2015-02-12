@@ -24,10 +24,9 @@
   (aset mesh "material" "uniforms" "amplitude" "value" amplitude)
   amplitude)
 
-(defn scale-entity [{:keys [mesh amplitude] :as entity}]
-  (let [max-amplitude 3
-        expand-rate 0.005
-        amplitude (lerp-to-target amplitude max-amplitude expand-rate)]
+(defn scale-entity
+  [{:keys [mesh amplitude] :as entity} max-amplitude expand-rate]
+  (let [amplitude (lerp-to-target amplitude max-amplitude expand-rate)]
     (update-in entity [:amplitude] #(apply-amplitude! mesh amplitude))))
 
 (defn spin-entity [{:keys [mesh] :as entity} spin-rate]
@@ -38,7 +37,9 @@
                                          (+ spin-rate %)))))
 
 (defn update-entity [{:keys [mesh scale target-scale direction] :as entity}]
-  (let [spin-rate 0.001]
+  (let [spin-rate 0.001
+        expand-rate 0.005
+        max-amplitude 3]
   (-> entity
-      (scale-entity)
+      (scale-entity max-amplitude expand-rate)
       (spin-entity spin-rate))))
