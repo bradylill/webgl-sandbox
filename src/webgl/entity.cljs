@@ -6,7 +6,8 @@
   (let [geo       (THREE.SphereGeometry. size size size)
         material  (mat/create-material geo)]
     {:mesh (THREE.Mesh. geo material)
-     :rx 0 :ry 0 :rz 0}))
+     :rx 0 :ry 0 :rz 0
+     :amplitude 0}))
 
 (defn add-entities-to-scene! [scene entities]
   (doseq [entity entities]
@@ -19,24 +20,20 @@
 (defn lerp-to-target [current target rate]
   (+ (* current (- 1 rate)) (* target rate)))
 
-(defn update-amplitude! [mesh current target]
-  (let [current (lerp-to-target current target 0.2)]
-    (aset mesh "material" "uniforms" "amplitude" "value" current)
-    current))
+(defn apply-amplitude! [mesh amplitude]
+  (aset mesh "material" "uniforms" "amplitude" "value" amplitude)
+  amplitude)
 
-(defn calculate-new-target [current target]
-  (let [current (if (nil? current) 0 current)
-        target  (if (nil? target) 0 target)
-        distance (- target current)]
-   (if (<= distance 0.1)
-     (+ 0.2 target)
-     target)))
+(defn scale-entity [{:keys [mesh amplitude] :as entity}]
+  (let [max-amplitude 3
+        expand-rate 0.005
+        amplitude (lerp-to-target amplitude max-amplitude expand-rate)]
+    (update-in entity [:amplitude] #(apply-amplitude! mesh amplitude))))
 
-(defn update-entity [{:keys [mesh current-scale target-scale] :as entity}]
-  (-> entity
-      (update-in [:rx]  #(do (aset mesh "rotation" "x" %)
-                             (+ 0.001 %)))
-      (update-in [:ry]  #(do (aset mesh "rotation" "y" %)
-                             (+ 0.001 %)))
-      (update-in [:target-scale] #(calculate-new-target current-scale %))
-      (update-in [:current-scale] #(update-amplitude! mesh % target-scale))))
+(defn update-entity [{:keys [mesh scale target-scale direction] :as entity}]
+  (scale-entity entity)
+  #_(-> entity
+        (update-in [:rx]            #(do (aset mesh "rotation" "x" %)
+                                         (+ 0.001 %)))
+        (update-in [:ry]            #(do (aset mesh "rotation" "y" %)
+                                         (+ 0.001 %)))))
