@@ -7,6 +7,9 @@
 
 (def app-state {})
 
+(def width (- window/innerWidth 400))
+(def height window/innerHeight)
+
 (defn create-camera [[window-width window-height]]
   (let [aspect (/ window-width window-height)
         fov 75
@@ -38,9 +41,9 @@
 
 (defn start []
   (-> app-state
-      (assoc :window-size [window/innerWidth window/innerHeight])
+      (assoc :window-size [width height])
       (assoc :scene (THREE.Scene.))
-      (assoc :camera (create-camera [window/innerWidth window/innerHeight]))
+      (assoc :camera (create-camera [width height]))
       (assoc :renderer (THREE.WebGLRenderer.))
       (assoc :entities (entity/create-entities))
       (init!)))
