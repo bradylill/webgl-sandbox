@@ -1,5 +1,6 @@
 (ns webgl.core
   (:require [big-bang.core :refer [big-bang!]]
+            [webgl.ui :as ui]
             [webgl.entity :as entity]))
 
 (enable-console-print!)
@@ -32,6 +33,7 @@
     (init-three! renderer camera window-size)
     (init-lights! scene)
     (entity/add-entities-to-scene! scene entities)
+    (ui/render-ui)
     app-state))
 
 (defn start []
