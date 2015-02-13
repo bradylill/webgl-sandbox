@@ -5,6 +5,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/clojurescript "0.0-2760"]
                  [rm-hull/big-bang "0.0.1-SNAPSHOT"]
+                 [org.omcljs/om "0.8.8"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]]
 
   :plugins [[lein-cljsbuild "1.0.4"]]
@@ -15,6 +16,7 @@
     :builds [{:id "webgl"
               :source-paths ["src"]
               :compiler {
+                :main webgl.core
                 :output-to "webgl.js"
                 :output-dir "out"
                 :optimizations :none
